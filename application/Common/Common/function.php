@@ -2162,3 +2162,92 @@ function sp_mobile_code_log($mobile,$code,$expire_time){
     
     return $result;
 }
+
+/**
+ * GET 请求数据
+ */
+function requestGet($url = '',$timeout = 6,$count = 3){
+	static $index = 0 ;
+	$index++;
+	if(empty($url)){
+		throw new exception('url参数不能为空');
+	}
+	$ch = curl_init();
+	if($ch){
+		//设置curl
+		$header = array(
+            'User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+        );
+        //设置curl
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,FALSE); //不认证证书
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,FALSE);
+		curl_setopt($ch, CURLOPT_HEADER, FALSE);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+		$content = curl_exec($ch);
+		if($content === false){
+			if(curl_errno($ch) == CURLE_OPERATION_TIMEDOUT){
+				if($index < $count){
+					//超时重发
+					requestGet($url);
+				}
+			}
+		}
+		curl_close($ch);
+	} else {
+		$content = file_get_contents($url);
+	}
+	return $content;
+}
+
+/**
+ * POST 发送数据
+ */
+function requestPost($url='',$data=array(),$timeout=6,$count=3){
+	static $index = 0 ;
+	$index++;
+	if(empty($url)){
+		throw new exception('url参数不能为空');
+	}
+	$ch = curl_init();
+	if($ch){
+		//设置curl
+		$header = array(
+            'User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+        );
+        //设置curl
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,FALSE); //不认证证书
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,FALSE);
+		curl_setopt($ch, CURLOPT_HEADER, FALSE);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+		curl_setopt($ch, CURLOPT_POST, 1);				// post方式
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);	// post数据
+		$content = curl_exec($ch);
+		if($content === false){
+			if(curl_errno($ch) == CURLE_OPERATION_TIMEDOUT){
+				if($index < $count){
+					//超时重发
+					requestPost($url,$data);
+				}
+			}
+			
+		} 
+		curl_close($ch);
+	} else {
+		$data = http_build_query($data);
+		$context = array(
+			'http'=>array(
+				'method'=>'POST',
+				'content'=>$data
+			)
+		);
+		$context  = stream_context_create($context);
+		$content = file_get_contents($url,false,$context);
+	}
+	return $content;
+}
