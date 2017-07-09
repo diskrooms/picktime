@@ -11,12 +11,12 @@ class MenuModel extends CommonModel {
     protected $_validate = array(
         //array(验证字段,验证规则,错误提示,验证条件,附加规则,验证时间)
         array('name', 'require', '菜单名称不能为空！', 1, 'regex', CommonModel:: MODEL_BOTH ),
-        array('app', 'require', '应用不能为空！', 1, 'regex', CommonModel:: MODEL_BOTH ),
+        /*array('app', 'require', '应用不能为空！', 1, 'regex', CommonModel:: MODEL_BOTH ),
         array('model', 'require', '模块名称不能为空！', 1, 'regex', CommonModel:: MODEL_BOTH ),
         array('action', 'require', '方法名称不能为空！', 1, 'regex', CommonModel:: MODEL_BOTH ),
         array('app,model,action', 'checkAction', '同样的记录已经存在！', 1, 'callback', CommonModel:: MODEL_INSERT   ),
     	array('id,app,model,action', 'checkActionUpdate', '同样的记录已经存在！', 1, 'callback', CommonModel:: MODEL_UPDATE   ),
-        array('parentid', 'checkParentid', '菜单只支持四级！', 1, 'callback', 1),
+        array('parentid', 'checkParentid', '菜单只支持四级！', 1, 'callback', 1),*/
     );
     //自动完成
     protected $_auto = array(
@@ -39,7 +39,7 @@ class MenuModel extends CommonModel {
     }
 
     //验证action是否重复添加
-    public function checkAction($data) {
+    /*public function checkAction($data) {
         //检查是否重复添加
         $find = $this->where($data)->find();
         if ($find) {
@@ -47,7 +47,7 @@ class MenuModel extends CommonModel {
         }
         return true;
     }
-    //验证action是否重复添加
+    //编辑更新菜单时验证action是否重复添加
     public function checkActionUpdate($data) {
     	//检查是否重复添加
     	$id=$data['id'];
@@ -57,7 +57,7 @@ class MenuModel extends CommonModel {
     		return false;
     	}
     	return true;
-    }
+    }*/
     
 
     /**

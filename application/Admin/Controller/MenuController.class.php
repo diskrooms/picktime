@@ -19,6 +19,7 @@ class MenuController extends AdminbaseController {
 
     // 后台菜单列表
     public function index() {
+		header('Content-type:text/html;charset=utf-8');
     	session('admin_menu_index','Menu/index');
         $result = $this->menu_model->order(array("listorder" => "ASC"))->select();
         $tree = new \Tree();
@@ -30,24 +31,25 @@ class MenuController extends AdminbaseController {
         	$newmenus[$m['id']]=$m;
         	 
         }
-        foreach ($result as $n=> $r) {
-        	
+        foreach ($result as $n=> $r) {   	
         	//$result[$n]['level'] = $this->_get_level($r['id'], $newmenus);
         	$result[$n]['parentid_node'] = ($r['parentid']) ? ' class="child-of-node-' . $r['parentid'] . '"' : '';
-        	
         	$result[$n]['style'] = empty($r['parentid']) ? '' : 'display:none;';
-        	
-            $result[$n]['str_manage'] = '<a class="layui-btn layui-btn-normal layui-btn-mini" href="' . U("Menu/add", array("parentid" => $r['id'], "menuid" => I("get.menuid"))) . '">'.L('ADD_SUB_MENU').'</a>  <a class="layui-btn layui-btn-mini" href="' . U("Menu/edit", array("id" => $r['id'], "menuid" => I("get.menuid"))) . '">'.L('EDIT').'</a>  <a class="layui-btn layui-btn-danger layui-btn-mini" data-action="del" data-url="' . U("Menu/delete", array("id" => $r['id'], "menuid" => I("get.menuid")) ). '">'.L('DELETE').'</a> ';
-            $result[$n]['status'] = $r['status'] ? '<a class="layui-btn layui-btn-mini layui-btn-normal">'.L('DISPLAY').'</a>' : '<a class="layui-btn layui-btn-mini layui-btn-danger" >'.L('HIDDEN').'</a>';
+            $result[$n]['str_manage'] = '<!--<a class="layui-btn layui-btn-normal layui-btn-mini" href="' . U("Menu/add", array("parentid" => $r['id'], "menuid" => I("get.menuid"))) . '">'.L('ADD_SUB_MENU').'</a>-->  <a class="layui-btn layui-btn-mini" data-action="edit" data-href="' . U("Menu/edit", array("id" => $r['id'], "menuid" => I("get.menuid"))) . '">'.L('EDIT').'</a>  <a class="layui-btn layui-btn-danger layui-btn-mini" data-action="del" data-url="' . U("Menu/delete", array("id" => $r['id'], "menuid" => I("get.menuid")) ). '">'.L('DELETE').'</a> ';
+            $result[$n]['status'] = $r['status'] ? '<a data-id="'.$r['id'].'" data-status="1" class="layui-btn layui-btn-mini layui-btn-normal">'.L('DISPLAY').'</a>' : '<a data-id="'.$r['id'].'" data-status="0" class="layui-btn layui-btn-mini layui-btn-danger" >'.L('HIDDEN').'</a>';
             if(APP_DEBUG){
-            	$result[$n]['app']=$r['app']."/".$r['model']."/".$r['action'];
+				if(empty($r['app']) || empty($r['model']) || empty($r['action'])){
+					$result[$n]['app'] = '无页面菜单';
+				} else {
+            		$result[$n]['app']=$r['app']."/".$r['model']."/".$r['action'];
+				}
             }
         }
 		//dump($result);
 		//exit();
         $tree->init($result);
         $str = "<tr id='node-\$id' \$parentid_node style='\$style'>
-					<td style='padding-left:20px;'><input name='listorders[\$id]' type='text' size='3' value='\$listorder' class='input input-order'></td>
+					<td style='text-align:center'><!--<input name='listorders[\$id]' type='text' size='3' value='\$listorder' class='input input-order'>--></td>
 					<td data-field='id' data-id='\$id'>\$id</td>
         			<td>\$app</td>
 					<td data-field='name'>\$spacer<i class='fa \$icon'></i>  \$name</td>
@@ -95,45 +97,47 @@ class MenuController extends AdminbaseController {
     	$this->display();
     }
 
-    // 后台菜单添加
-    public function add() {
-    	$tree = new \Tree();
-    	$parentid = I("get.parentid",0,'intval');
-    	$result = $this->menu_model->order(array("listorder" => "ASC"))->select();
-    	foreach ($result as $r) {
-    		$r['selected'] = $r['id'] == $parentid ? 'selected' : '';
-    		$array[] = $r;
-    	}
-    	$str = "<option value='\$id' \$selected>\$spacer \$name</option>";
-    	$tree->init($array);
-    	$select_categorys = $tree->get_tree(0, $str);
-    	$this->assign("select_categorys", $select_categorys);
-    	$this->display();
-    }
     
-    // 后台菜单添加提交
-    public function add_post() {
+    // 添加菜单
+    public function addMenu() {
     	if (IS_POST) {
-    		if ($this->menu_model->create()!==false) {
-    			if ($this->menu_model->add()!==false) {
-    				$app=I("post.app");
-    				$model=I("post.model");
-    				$action=I("post.action");
-    				$name=strtolower("$app/$model/$action");
-    				$menu_name=I("post.name");
-    				$mwhere=array("name"=>$name);
-    				
-    				$find_rule_count=$this->auth_rule_model->where($mwhere)->count();
-    				if(empty($find_rule_count)){
-    					$this->auth_rule_model->add(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
-    				}
-    				$session_admin_menu_index=session('admin_menu_index');
-    				$to=empty($session_admin_menu_index)?"Menu/index":$session_admin_menu_index;
-    				$this->_export_app_menu_default_lang($app);
-    				$this->success("添加成功！", U($to));
-    			} else {
-    				$this->error("添加失败！");
-    			}
+			$menuData = $this->menu_model->create();
+    		if ($menuData!==false) {
+				$_path = explode('/',$menuData['path']);
+				//print_r($_path);
+				//exit();
+				$app = $menuData['app'] = isset($_path[0]) ? $_path[0] : '';
+				$model = $menuData['model'] = isset($_path[1]) ? $_path[1] : '';
+				$action = $menuData['action'] = isset($_path[2]) ? $_path[2] : '';
+				unset($menuData['path']);
+				$insertMenuId = $this->menu_model->add($menuData);
+				if ($insertMenuId !== false) {
+					//更新menu表path字段 如果是顶级菜单 path就是 insertMenuId 如果不是顶级菜单 path 就是父级的path字段追加自己的 insertMenuId
+					$path = $insertMenuId;
+					if($menuData['parentid'] > 0){
+						$parentPath = $this->menu_model->field('path')->where('id='.$menuData['parentid'])->find();
+						$path = $parentPath['path'].'-'.$insertMenuId;
+					}
+					$updateData = array(
+						'path'=>$path
+					);
+					$this->menu_model->where('id='.$insertMenuId)->save($updateData);
+					$this->success("添加成功！");
+					/*$name=strtolower("$app/$model/$action");
+					$menu_name=I("post.name");
+					$mwhere=array("name"=>$name);
+					$find_rule_count=$this->auth_rule_model->where($mwhere)->count();
+					if(empty($find_rule_count)){
+						$this->auth_rule_model->add(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
+					}
+					$session_admin_menu_index = session('admin_menu_index');
+					$to = empty($session_admin_menu_index) ? "Menu/index" : $session_admin_menu_index;
+					$this->_export_app_menu_default_lang($app);
+					$this->success("添加成功！", U($to));*/
+				} else {
+					$this->error("添加失败！");
+				}
+				
     		} else {
     			$this->error($this->menu_model->getError());
     		}
@@ -155,7 +159,7 @@ class MenuController extends AdminbaseController {
     }
 
     // 后台菜单编辑
-    public function edit() {
+    /*public function edit() {
         $tree = new \Tree();
         $id = I("get.id",0,'intval');
         $rs = $this->menu_model->where(array("id" => $id))->find();
@@ -170,60 +174,72 @@ class MenuController extends AdminbaseController {
         $this->assign("data", $rs);
         $this->assign("select_categorys", $select_categorys);
         $this->display();
-    }
+    }*/
     
     // 后台菜单编辑提交
-    public function edit_post() {
+    public function editMenu() {
     	if (IS_POST) {
-    	    $id = I('post.id',0,'intval');
-    	    $old_menu=$this->menu_model->where(array('id'=>$id))->find();
-    		if ($this->menu_model->create()!==false) {
-    			if ($this->menu_model->save() !== false) {
-    				$app=I("post.app");
-    				$model=I("post.model");
-    				$action=I("post.action");
-    				$name=strtolower("$app/$model/$action");
-    				$menu_name=I("post.name");
-    				$mwhere=array("name"=>$name);
-    				
-    				$find_rule_count=$this->auth_rule_model->where($mwhere)->count();
-    				if(empty($find_rule_count)){
-    				    $old_app=$old_menu['app'];
-    				    $old_model=$old_menu['model'];
-    				    $old_action=$old_menu['action'];
-    				    $old_name=strtolower("$old_app/$old_model/$old_action");
-    				    $find_old_rule_id=$this->auth_rule_model->where(array("name"=>$old_name))->getField('id');
-    				    if(empty($find_old_rule_id)){
-    				        $this->auth_rule_model->add(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
-    				    }else{
-    				        $this->auth_rule_model->where(array('id'=>$find_old_rule_id))->save(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
-    				    }
-    				}else{
-    					$this->auth_rule_model->where($mwhere)->save(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
-    				}
-    				$this->_export_app_menu_default_lang($app);
-    				$this->success("更新成功！");
-    			} else {
-    				$this->error("更新失败！");
-    			}
-    		} else {
-    			$this->error($this->menu_model->getError());
-    		}
+    	    $id = I('post.id',0,'intval');							//菜单id
+			$action = I('post.action','','trim,addslashes');		//编辑操作
+			if(!empty($id) && !empty($action)){
+				if($action == 'editStatus'){
+					$status = intval(!I('post.status',0,'intval'));
+					$updateData = array(
+						'status'=>$status
+					);
+				}
+				$updateResult = $this->menu_model->where('id='.$id)->save($updateData);		//更新行数 0表示未更新
+				if($updateResult !== false) {
+					if($updateResult > 0){
+						echo json_encode(array('status'=>1,'msg'=>'更新状态成功','data'=>array('status'=>$status)),JSON_UNESCAPED_UNICODE);
+					} else {
+						echo json_encode(array('status'=>0,'msg'=>'无状态更新'),JSON_UNESCAPED_UNICODE);
+					}
+					/*$app=I("post.app");
+					$model=I("post.model");
+					$action=I("post.action");
+					$name=strtolower("$app/$model/$action");
+					$menu_name=I("post.name");
+					$mwhere=array("name"=>$name);
+					
+					$find_rule_count=$this->auth_rule_model->where($mwhere)->count();
+					if(empty($find_rule_count)){
+						$old_app=$old_menu['app'];
+						$old_model=$old_menu['model'];
+						$old_action=$old_menu['action'];
+						$old_name=strtolower("$old_app/$old_model/$old_action");
+						$find_old_rule_id=$this->auth_rule_model->where(array("name"=>$old_name))->getField('id');
+						if(empty($find_old_rule_id)){
+							$this->auth_rule_model->add(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
+						}else{
+							$this->auth_rule_model->where(array('id'=>$find_old_rule_id))->save(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
+						}
+					}else{
+						$this->auth_rule_model->where($mwhere)->save(array("name"=>$name,"module"=>$app,"type"=>"admin_url","title"=>$menu_name));//type 1-admin rule;2-user rule
+					}
+					$this->_export_app_menu_default_lang($app);
+					$this->success("更新成功！");*/
+				} else {
+					$this->error("更新SQL语句错误！");
+				}
+			} else {
+				$this->error("菜单id不能为空！");
+			}
     	}
     }
 
     // 后台菜单排序
-    public function listorders() {
+    /*public function listorders() {
         $status = parent::_listorders($this->menu_model);
         if ($status) {
             $this->success("排序更新成功！");
         } else {
             $this->error("排序更新失败！");
         }
-    }
+    }*/
     
     // 后台菜单备份
-    public function backup_menu(){
+    /*public function backup_menu(){
     	$menus=$this->menu_model->get_menu_tree(0);
     	
     	$menus_str= var_export($menus,true);
@@ -244,13 +260,13 @@ class MenuController extends AdminbaseController {
     		
     	}
     	$this->success('菜单备份成功！');
-    }
+    }*/
     
     /**
      *  导出后台菜单语言包
      * @param string $app
      */
-    private function _export_app_menu_default_lang($app){
+    /*private function _export_app_menu_default_lang($app){
         $menus = $this->menu_model->where(array("app"=>$app))->order(array("listorder"=>"ASC","app" => "ASC","model" => "ASC","action" => "ASC"))->select();
         $lang_dir=C('DEFAULT_LANG');
         $admin_menu_lang_file_default=SITE_PATH."data/lang/$app/Lang/".$lang_dir."/admin_menu.php";
@@ -272,10 +288,10 @@ class MenuController extends AdminbaseController {
         if(!empty($admin_menu_lang_file_default)){
             file_put_contents($admin_menu_lang_file_default, "<?php\nreturn $lang_str;");
         }
-    }
+    }*/
     
     // 导出后台菜单语言
-    public function export_menu_lang(){
+    /*public function export_menu_lang(){
     	$apps=sp_scan_dir(SPAPP."*",GLOB_ONLYDIR);
     	$default_lang=C('DEFAULT_LANG');
     	foreach ($apps as $app){
@@ -330,7 +346,7 @@ class MenuController extends AdminbaseController {
     		
     	}
     	$this->success('生成菜单语言包已经完成！');
-    }
+    }*/
     
     /* public function dev_import_menu(){
     	$menus=F("Menu");
@@ -347,7 +363,7 @@ class MenuController extends AdminbaseController {
     } */
     
     // 导入后台菜单
-    private function _import_menu($menus,$parentid=0,&$error_menus=array()){
+    /*private function _import_menu($menus,$parentid=0,&$error_menus=array()){
     	foreach ($menus as $menu){
     	
     		$app=$menu['app'];
@@ -395,10 +411,10 @@ class MenuController extends AdminbaseController {
     		}
     	}
     	
-    }
+    }*/
     
     // 还原菜单
-    public function restore_menu(){
+    /*public function restore_menu(){
     	
     	$apps=sp_scan_dir(SPAPP."*",GLOB_ONLYDIR);
     	$error_menus=array();
@@ -428,9 +444,9 @@ class MenuController extends AdminbaseController {
     	}else{
     	    $this->error('菜单恢复失败：'.implode(',', $error_menus));
     	}
-    }
+    }*/
     
-    private function _import_submenu($submenus,$parentid){
+    /*private function _import_submenu($submenus,$parentid){
     	foreach($submenus as $sm){
     		$data=$sm;
     		$data['parentid']=$parentid;
@@ -442,9 +458,9 @@ class MenuController extends AdminbaseController {
     			return;
     		}
     	}
-    }
+    }*/
     
-    private function _generate_submenu(&$rootmenu,$m){
+    /*private function _generate_submenu(&$rootmenu,$m){
     	$parentid=$m['id'];
     	$rm=$this->menu_model->menu($parentid);
     	unset($rootmenu['id']);
@@ -462,10 +478,10 @@ class MenuController extends AdminbaseController {
     		return ;
     	}
     	
-    }
+    }*/
     
     // 导入新菜单
-    public function getactions(){
+    /*public function getactions(){
     	$apps_r=array("Comment");
     	$groups=C("MODULE_ALLOW_LIST");
     	$group_count=count($groups);
@@ -552,6 +568,6 @@ class MenuController extends AdminbaseController {
     	$this->assign("newmenus",$newmenus);
     	$this->display("getactions");
     	
-    }
+    }*/
 
 }

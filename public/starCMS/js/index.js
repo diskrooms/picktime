@@ -70,7 +70,9 @@ layui.config({
     navbar.render();
     //监听点击事件
     navbar.on('click(side)', function (data) {
-        tab.tabAdd(data.field);
+		if((data.field.href !== undefined) && (data.field.href !== '')){
+        	tab.tabAdd(data.field);
+		}
     });
     //清除缓存
     $('#clearCached').on('click', function () {

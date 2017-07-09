@@ -31,7 +31,12 @@ class IndexController extends AdminbaseController {
 		$_tree_arr = array();
 		foreach($menus as $menu){
 			$path = explode('-',$menu['path']);
-			$menu['href'] = $menu['app'].'/'.$menu['model'].'/'.$menu['action'];
+			
+			if(!empty($menu['app']) && !empty($menu['model']) && !empty($menu['action'])){
+				$menu['href'] = $menu['app'].'/'.$menu['model'].'/'.$menu['action'];
+			} else {
+				$menu['href'] = '';
+			}
 			//dump($path);
 			$_tree_arr = $this->addLeaf($_tree_arr,$path,$menu);
 		}
