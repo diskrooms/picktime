@@ -1,6 +1,6 @@
 <?php
 /**
- * 客户端注册登录接口
+ * APP客户端注册登录接口
  */
 namespace Api\Controller;
 
