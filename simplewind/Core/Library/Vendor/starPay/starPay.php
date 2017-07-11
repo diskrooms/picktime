@@ -18,7 +18,7 @@ class pay{
 	private $payType = '';                                   //支付类型 wx 微信支付 alipay 支付宝支付
 	private $timeout = '';                                      //curl超时时间 默认6s
 	
-	public function __construct($config = array()){
+	public function __construct(){
 		header("Content-type:text/html;charset=utf-8");
 	}
 	
@@ -38,6 +38,7 @@ class pay{
 			$this->alipaySellerId = trim($config['sellerid']);
 		}
 	}
+	
 	/**
 	 * 获取微信用户的openId
 	 * 如果请求该接口的域名与微信公众平台填写的认证域名不一致,则会产生跨域的问题而无法正常获取到openid
